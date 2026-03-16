@@ -53,12 +53,12 @@ const Uring = struct {
     const Entry = struct {
         sqe: *c.io_uring_sqe,
 
-        pub fn prep_socket(self: *Entry) void {
-            c.io_uring_prep_socket(&self.sqe, 0, 0, 0, 0);
+        pub fn prep_socket(self: *Entry, domain: c_int, stype: c_int) void {
+            c.io_uring_prep_socket(self.sqe, domain, stype, 0, 0);
         }
 
-        pub fn prep_read(self: *Entry, fd: i32, buf: []u8, offset: u64) void {
-            c.io_uring_prep_read(&self.sqe, fd, buf.ptr, buf.len, offset);
+        pub fn prep_read(self: *Entry, fd: c_int, buf: []u8, offset: u64) void {
+            c.io_uring_prep_read(self.sqe, fd.value, buf.ptr, buf.len, offset);
         }
     };
 };
@@ -66,6 +66,9 @@ const Uring = struct {
 pub fn server(port: u16) !void {
     var ring = try Uring.init(.{});
     defer ring.deinit();
+
+    var entry = try ring.entry();
+    entry.prep_socket(c.AF_INET, c.SOCK_STREAM);
 
     try ring.submit();
 
